@@ -6,7 +6,7 @@ import store from './store'
 import ElementUI from 'element-ui'
 import 'element-ui/lib/theme-chalk/index.css'
 
-import {VUE_SOCKET_IO} from './api/socket'
+import {VUE_SOCKET_IO} from './util/socket'
 
 import './static/css/common.css'
 

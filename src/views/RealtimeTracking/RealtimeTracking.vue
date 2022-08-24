@@ -365,7 +365,7 @@ export default {
 }
 
 .after-open-camara .track-info-form >>> .el-select .el-input__inner {
-  width: 14vw;
+  width: 13vw;
 }
 
 .after-open-camara p {

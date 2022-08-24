@@ -229,6 +229,12 @@ export default {
       stopProgress: false // 终止进度条
     }
   },
+  beforeDestroy () {
+    if (this.$store.state.cancelAxios.cancelAxios !== null) {
+      this.$store.state.cancelAxios.cancelAxios()
+      this.$store.dispatch('delReqUrl', true)
+    }
+  },
   methods: {
     // 图片缩略图
     imgPreview (file) {
@@ -397,6 +403,8 @@ export default {
       }).then(() => {
         this.isTracking = false
         this.active = 3
+        this.$store.state.cancelAxios.cancelAxios()
+        this.$store.dispatch('delReqUrl', true)
       })
     }
   }
@@ -404,194 +412,10 @@ export default {
 </script>
 
 <style scoped>
+@import "../../static/css/mediaTracking.css";
+
 .container {
   background: url("../../assets/track_image_bg.jpg") no-repeat center;
-}
-
-.title {
-  font-size: 3vw;
-  color: #cfcece;
-}
-
-.title span {
-  letter-spacing: 1vw;
-}
-
-.content {
-  margin: 1.5% auto;
-  width: 85vw;
-  background-color: rgba(255, 255, 255, .7);
-  border-radius: 25px;
-  padding: 2.5%;
-}
-
-.before-tracking, .after-tracking {
-  display: flex;
-}
-
-.content-left {
-  width: 45.3vw;
-  height: 60vh;
-  border-radius: 25px;
-  background-color: rgba(62, 61, 61, 0.2);
-}
-
-.content-right {
-  margin-left: 2%;
-  width: 48.2vw;
-  position: relative;
-}
-
-.uploader >>> .el-upload-dragger {
-  width: 45.3vw;
-  height: 60vh;
-  border-radius: 25px;
-  border: none;
-  background-color: rgba(255, 255, 255, 0);
-}
-
-.uploader .uploader-icon {
-  margin-top: 18%;
-  font-size: 15vh;
-  color: #181818;
-  transition: all .8s;
-}
-
-.uploader:hover .uploader-icon {
-  font-size: 20vh;
-  transition: all .8s;
-}
-
-.uploader .uploader-text {
-  margin-top: 4%;
-  font-size: 4vh;
-  color: #181818;
-}
-
-.content-left .after-upload, .content-left .after-success-tracking {
-  height: 100%;
-  width: 100%;
-  position: relative;
-}
-
-.upload-img {
-  height: 100%;
-  width: 100%;
-  border-radius: 25px;
-  object-fit: contain;
-}
-
-.before-tracking .content-right .card {
-  position: absolute;
-  width: 100%;
-  bottom: 0;
-  height: 49vh;
-  border-radius: 25px;
-  background-color: rgba(255, 255, 255, .6);
-}
-
-.content-right .card >>> .el-card__header {
-  border-bottom: 2px solid #9d9d9d;
-  font-size: 2.5vh;
-}
-
-.after-tracking .content-right .card {
-  width: 100%;
-  bottom: 0;
-  height: 60vh;
-  border-radius: 25px;
-  background-color: rgba(255, 255, 255, .6);
-}
-
-.card .step1_before_upload .loading-icon {
-  font-size: 5vh;
-  margin-top: 10vh;
-}
-
-.card .step1_before_upload p {
-  margin-top: 6vh;
-  font-size: 2.3vh;
-}
-
-.card .step1_after_upload {
-  font-size: 2.3vh;
-}
-
-.card .step1_after_upload .img-info-item {
-  text-align: left;
-  margin: 3vh 2vw;
-}
-
-.card .step1_after_upload .img-info-step1_2 {
-  margin: 4vh 0;
-}
-
-.img-button {
-  width: 40%;
-  font-size: 2vh;
-  line-height: 3vh;
-}
-
-.card .type-form {
-  margin: 4vh 3vw;
-}
-
-.card .type-form p {
-  margin: 2.5vh 0 1.5vh 0;
-  font-size: 2vh;
-}
-
-.card .img-tip-step2 {
-  margin: 4vh 0;
-  font-size: 2.3vh;
-}
-
-.card .step3, .card .after-success-tracking {
-  font-size: 2.3vh;
-}
-
-.card .step3 .img-info-item, .card .after-success-tracking .img-info-item {
-  text-align: left;
-  margin: 2vh 3vw;
-}
-
-.card .img-info-step3 {
-  margin: 3vh 0;
-  font-size: 2.3vh;
-}
-
-.after-tracking .content-left .before-success-tracking {
-  font-size: 8vh;
-  line-height: 60vh;
-}
-
-/*.after-tracking .content-right .before-success-tracking {*/
-/*  font-size: 2.4vh;*/
-/*}*/
-
-.after-tracking .content-right .tag {
-  width: 10vw;
-  height: 5vh;
-  line-height: 5vh;
-  font-size: 2.5vh;
-}
-
-.after-tracking .content-right .progress {
-  margin: 4% 0 2% 0;
-}
-
-.after-tracking .content-right .cancel-btn {
-  margin: 2vh auto;
-  width: 40%;
-  font-size: 2vh;
-  line-height: 3vh;
-}
-
-.after-tracking .content-right .after-success-tracking .img-info-finish {
-  margin: 7vh 2vw;
-  width: 15vw;
-  font-size: 2vh;
-  line-height: 3vh;
 }
 
 .dialog-img {

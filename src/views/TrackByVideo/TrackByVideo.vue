@@ -213,7 +213,7 @@ export default {
   },
   data () {
     return {
-      active: 1,
+      active: 1, // 进度条状态
       isUpload: false, // false
       beforeTrackImg: '', // 上传图片File
       afterTrackImg: '', // 跟踪结果图片File
@@ -223,12 +223,18 @@ export default {
       successTrack: false, // false
       trackStatue: 1, // 跟踪状态（0：成功，1：跟踪中，2：失败）
       chosenType: [], // 跟踪类型
-      trackTypeList: trackTypeList,
-      trackFileSize: '',
+      trackTypeList: trackTypeList, // 跟踪类型列表
+      trackFileSize: '', // 成功视频文件大小
       trackModel: 0, // 跟踪模型（0：StrongSORT，1：ByteTrack）
       // personList: [], //轨迹追踪所需参数
       trackingPercentage: 0, // 跟踪进度
       stopProgress: false // 终止进度条
+    }
+  },
+  beforeDestroy () {
+    if (this.$store.state.cancelAxios.cancelAxios !== null) {
+      this.$store.state.cancelAxios.cancelAxios()
+      this.$store.dispatch('delReqUrl', true)
     }
   },
   methods: {
@@ -272,7 +278,6 @@ export default {
         return
       }
       let formData = new FormData()
-      // let fileType = this.beforeTrackImg.raw.type.split('/')[0]
       let suffix = this.beforeTrackImg.raw.name.split('.')
       formData.append('file', this.beforeTrackImg.raw)
       formData.append('trackType', this.chosenType)
@@ -284,7 +289,6 @@ export default {
       } else if (this.trackModel === 1) {
         this.refreshProgress(Math.round(this.beforeTrackImg.raw.size / 340000) * 10)
       }
-      // this.refreshProgress(1000)
       trackByVideo(formData).then(res => {
         this.trackingPercentage = 100
         console.log(res)
@@ -380,9 +384,10 @@ export default {
         cancelButtonText: '取消',
         type: 'warning'
       }).then(() => {
-        this.$socket.emit('cancelTrack', true)
         this.isTracking = false
         this.active = 4
+        this.$store.state.cancelAxios.cancelAxios()
+        this.$store.dispatch('delReqUrl', true)
       })
     }
   }
@@ -390,81 +395,10 @@ export default {
 </script>
 
 <style scoped>
+@import "../../static/css/mediaTracking.css";
+
 .container {
   background: url("../../assets/track_video_bg.jpg") no-repeat center;
-}
-
-.title {
-  font-size: 3vw;
-  color: #cfcece;
-}
-
-.title span {
-  letter-spacing: 1vw;
-}
-
-.content {
-  margin: 1.5% auto;
-  width: 85vw;
-  background-color: rgba(255, 255, 255, .7);
-  border-radius: 25px;
-  padding: 2.5%;
-}
-
-.before-tracking, .after-tracking {
-  display: flex;
-}
-
-.content-left {
-  width: 45.3vw;
-  height: 60vh;
-  border-radius: 25px;
-  background-color: rgba(62, 61, 61, 0.2);
-}
-
-.content-right {
-  margin-left: 2%;
-  width: 48.2vw;
-  position: relative;
-}
-
-.uploader >>> .el-upload-dragger {
-  width: 45.3vw;
-  height: 60vh;
-  border-radius: 25px;
-  border: none;
-  background-color: rgba(255, 255, 255, 0);
-}
-
-.uploader .uploader-icon {
-  margin-top: 18%;
-  font-size: 15vh;
-  color: #181818;
-  transition: all .8s;
-}
-
-.uploader:hover .uploader-icon {
-  font-size: 20vh;
-  transition: all .8s;
-}
-
-.uploader .uploader-text {
-  margin-top: 4%;
-  font-size: 4vh;
-  color: #181818;
-}
-
-.content-left .after-upload, .content-left .after-success-tracking {
-  height: 100%;
-  width: 100%;
-  position: relative;
-}
-
-.upload-img {
-  height: 100%;
-  width: 100%;
-  border-radius: 25px;
-  object-fit: contain;
 }
 
 .card .del-icon {
@@ -474,125 +408,5 @@ export default {
   right: 1vh;
   top: 9vh;
   font-size: 4vh;
-}
-
-.before-tracking .content-right .card {
-  position: absolute;
-  width: 100%;
-  bottom: 0;
-  height: 49vh;
-  border-radius: 25px;
-  background-color: rgba(255, 255, 255, .6);
-}
-
-.content-right .card >>> .el-card__header {
-  border-bottom: 2px solid #9d9d9d;
-  font-size: 2.5vh;
-}
-
-.after-tracking .content-right .card {
-  width: 100%;
-  bottom: 0;
-  height: 60vh;
-  border-radius: 25px;
-  background-color: rgba(255, 255, 255, .6);
-}
-
-.card .step1_before_upload .loading-icon {
-  font-size: 5vh;
-  margin-top: 10vh;
-}
-
-.card .step1_before_upload p {
-  margin-top: 6vh;
-  font-size: 2.3vh;
-}
-
-.card .type-form >>> .el-select .el-select-group__title {
-  font-size: 1.5vh;
-}
-
-.card .type-form >>> .el-select .el-select-group__title {
-  font-size: 1vh;
-}
-
-.card .step1_after_upload {
-  font-size: 2.3vh;
-}
-
-.card .step1_after_upload .img-info-item {
-  text-align: left;
-  margin: 3vh 2vw;
-}
-
-.card .step1_after_upload .img-info-step1_2 {
-  margin: 4vh 0;
-}
-
-.img-button {
-  width: 40%;
-  font-size: 2vh;
-  line-height: 3vh;
-}
-
-.card .type-form {
-  margin: 4vh 3vw;
-}
-
-.card .type-form p {
-  margin: 2.5vh 0 1.5vh 0;
-  font-size: 2vh;
-}
-
-.card .img-tip-step2 {
-  margin: 4vh 0;
-  font-size: 2.3vh;
-}
-
-.card .step3, .card .after-success-tracking {
-  font-size: 2.3vh;
-}
-
-.card .step3 .img-info-item, .card .after-success-tracking .img-info-item {
-  text-align: left;
-  margin: 2vh 3vw;
-}
-
-.card .img-info-step3 {
-  margin: 3vh 0;
-  font-size: 2.3vh;
-}
-
-.after-tracking .content-left .before-success-tracking {
-  font-size: 8vh;
-  line-height: 60vh;
-}
-
-/*.after-tracking .content-right .before-success-tracking {*/
-/*  !*font-size: 2.4vh;*!*/
-/*}*/
-
-.after-tracking .content-right .tag {
-  width: 10vw;
-  height: 5vh;
-  line-height: 5vh;
-  font-size: 2.5vh;
-}
-
-.after-tracking .content-right .progress {
-  margin: 4% 0 2% 0;
-}
-
-.after-tracking .content-right .cancel-btn {
-  margin: 2vh auto;
-  width: 40%;
-  font-size: 2vh;
-  line-height: 3vh;
-}
-
-.after-tracking .content-right .after-success-tracking .img-info-finish {
-  margin: 7vh 1vh;
-  width: 14vw;
-  font-size: 2.3vh;
 }
 </style>

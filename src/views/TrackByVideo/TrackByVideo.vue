@@ -240,7 +240,6 @@ export default {
   methods: {
     // 图片缩略图
     imgPreview (file) {
-      console.log(file)
       if (file.raw.type.split('/')[0] === 'video') {
         this.beforeTrackImg = file
         this.beforeTrackImgUrl = URL.createObjectURL(file.raw)

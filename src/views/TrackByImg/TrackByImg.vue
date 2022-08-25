@@ -51,16 +51,20 @@
                 <i class="el-icon-loading"></i>
               </div>
               <p>未检测到图像上传，请先在 <b>左侧拖拽框</b> 中上传图像</p>
+              <p>或点击
+                <button class="img-cap" @click="imgCapDialogVisible = true">此处</button>
+                进行拍照上传
+              </p>
             </div>
             <div v-else class="step1_after_upload">
               <div class="img-info-item">
                 {{ '文件名: ' + this.beforeTrackImg.name }}
               </div>
               <div class="img-info-item">
-                {{ '类型: ' + this.beforeTrackImg.raw.type }}
+                {{ '类型: ' + this.beforeTrackImg.type }}
               </div>
               <div class="img-info-item">
-                {{ '状态: ' + this.beforeTrackImg.status }}
+                {{ '文件大小: ' + this.convertFileSize(this.beforeTrackImg.size) }}
               </div>
               <div class="img-info-step1_2">
                 请确认检测图像信息无误后，点击 <b>下一步</b> 继续操作
@@ -108,10 +112,10 @@
                 {{ '文件名: ' + this.beforeTrackImg.name }}
               </div>
               <div class="img-info-item">
-                {{ '类型: ' + this.beforeTrackImg.raw.type }}
+                {{ '类型: ' + this.beforeTrackImg.type }}
               </div>
               <div class="img-info-item">
-                {{ '状态: ' + this.beforeTrackImg.status }}
+                {{ '文件大小: ' + this.convertFileSize(this.beforeTrackImg.size) }}
               </div>
               <div class="img-info-item">
                 {{ '检测类型: ' + this.chosenType }}
@@ -187,9 +191,50 @@
                class="dialog">
       <img :src="beforeTrackImgUrl" alt="" class="dialog-img"/>
     </el-dialog>
-    <el-dialog :visible.sync="afterImgDialogVisible" :modal-append-to-body="false" top="5vh">
+    <el-dialog :visible.sync="afterImgDialogVisible" :modal-append-to-body="false" top="5vh" :show-close="false">
       <img :src="afterTrackImgUrl" alt="" class="dialog-img"/>
     </el-dialog>
+    <!--    拍照对话框-->
+    <div v-show="imgCapDialogVisible" class="img-cap-dialog">
+      <div class="img-cap-dialog-content">
+        <p class="img-cap-dialog-content-title">拍照上传</p>
+        <div v-show="!onCamara" class="before-open-camara">
+          <el-form class="info-form">
+            <el-form-item label="跟踪设备:">
+              <el-select v-model="deviceId"
+                         placeholder="请选择跟踪设备">
+                <el-option
+                  v-for="item in deviceList"
+                  :key="item.deviceId"
+                  :label="item.label"
+                  :value="item.deviceId">
+                </el-option>
+              </el-select>
+            </el-form-item>
+            <el-form-item label="开启镜像:">
+              <el-switch v-model="mirror"
+                         active-color="#262626">
+              </el-switch>
+            </el-form-item>
+          </el-form>
+          <el-button type="info" class="setting-btn" @click="imgCapDialogVisible = false">取消拍照</el-button>
+          <el-button type="info" class="setting-btn" @click="openCamara">开启摄像头</el-button>
+        </div>
+        <div v-show="onCamara" class="after-open-camara">
+          <div class="media-container">
+            <video id="tracking-video" autoplay v-show="!trackFrame" class="cap-img"/>
+            <img :src="trackFrame" alt="" v-show="trackFrame" class="cap-img"/>
+          </div>
+          <div class="setting-btn-group">
+            <!--            <el-button type="info" class="setting-btn" @click="imgCapDialogVisible = false">取消拍照</el-button>-->
+            <el-button type="info" class="setting-btn" @click="stopCamara">关闭摄像头</el-button>
+            <el-button type="info" class="setting-btn" v-show="!trackFrame" @click="captureImage">拍照</el-button>
+            <el-button type="info" class="setting-btn" v-show="trackFrame" @click="reCapture">重新拍照</el-button>
+            <el-button type="info" class="setting-btn" v-show="trackFrame" @click="useCapture">使用图片</el-button>
+          </div>
+        </div>
+      </div>
+    </div>
     <!--    <el-carousel v-if="personList !== []" :interval="4000" type="card" height="200px">-->
     <!--      <el-carousel-item v-for="item in personList" :key="item.id">-->
     <!--        <el-image :src="item.img" width="'100%" alt=""></el-image>-->
@@ -219,6 +264,7 @@ export default {
       isTracking: false, // 是否开始检测
       beforeImgDialogVisible: false,
       afterImgDialogVisible: false,
+      imgCapDialogVisible: false,
       successTrack: false, // false
       trackStatue: 1, // 检测状态（0：成功，1：检测中，2：失败）
       chosenType: [], // 检测类型
@@ -226,8 +272,29 @@ export default {
       trackFileSize: '',
       // personList: [], //轨迹追踪所需参数
       trackingPercentage: 0, // 检测进度
-      stopProgress: false // 终止进度条
+      stopProgress: false, // 终止进度条
+      deviceList: [], // 设备列表
+      deviceId: '', // 选中设备id
+      deviceLabel: '', // 选中设备名字
+      videoContain: null, // 摄像头视图容器
+      mirror: false, // 摄像头镜像
+      onCamara: false, // 是否打开摄像头
+      videoStream: null, // 摄像头视频流
+      trackFrame: '' // 跟踪完成的帧
     }
+  },
+  watch: {
+    mirror (isMirror) {
+      if (isMirror) {
+        this.videoContain.style.transform = 'rotateY(180deg)'
+      } else {
+        this.videoContain.style.transform = 'rotateY(0)'
+      }
+    }
+  },
+  mounted () {
+    this.getDeviceList()
+    this.videoContain = document.getElementById('tracking-video')
   },
   beforeDestroy () {
     if (this.$store.state.cancelAxios.cancelAxios !== null) {
@@ -240,7 +307,7 @@ export default {
     imgPreview (file) {
       console.log(file)
       if (file.raw.type.split('/')[0] === 'image') {
-        this.beforeTrackImg = file
+        this.beforeTrackImg = file.raw
         this.beforeTrackImgUrl = URL.createObjectURL(file.raw)
         this.isUpload = true
       } else {
@@ -277,8 +344,8 @@ export default {
       }
       let formData = new FormData()
       // let fileType = this.beforeTrackImg.raw.type.split('/')[0]
-      let suffix = this.beforeTrackImg.raw.name.split('.')
-      formData.append('file', this.beforeTrackImg.raw)
+      let suffix = this.beforeTrackImg.name.split('.')
+      formData.append('file', this.beforeTrackImg)
       formData.append('trackType', this.chosenType)
       // formData.append('fileType', fileType)
       formData.append('suffix', suffix[suffix.length - 1])
@@ -342,6 +409,81 @@ export default {
       this.isTracking = false
       this.successTrack = false
       this.active = 3
+    },
+    // 开启摄像头
+    openCamara () {
+      this.$confirm('即将开启摄像头，是否继续?', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'info'
+      }).then(() => {
+        this.onCamara = true
+        const constraints = {
+          video: {
+            deviceId: this.deviceId ? this.deviceId : undefined,
+            width: {min: 640, ideal: 1280, max: 1920},
+            height: {min: 480, ideal: 720, max: 1080}
+            // width: 256,
+            // height: 144
+          }
+        }
+        navigator.mediaDevices.getUserMedia(constraints).then(stream => {
+          this.videoContain.srcObject = stream
+          this.videoStream = stream
+        })
+      })
+    },
+    // 拍照
+    captureImage () {
+      const canvas = document.createElement('canvas')
+      // console.log(video.videoHeight)
+      canvas.width = this.videoContain.videoWidth
+      canvas.height = this.videoContain.videoHeight
+      let ctx = canvas.getContext('2d')
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      if (this.mirror) {
+        ctx.translate(canvas.width, 0)
+        ctx.scale(-1, 1)
+      }
+      ctx.drawImage(this.videoContain, 0, 0)
+      canvas.toBlob(blob => {
+        this.trackFrame = URL.createObjectURL(blob)
+        this.beforeTrackImg = new File([blob], 'capture.png', {type: 'image/png'})
+      })
+    },
+    // 重新拍照
+    reCapture () {
+      this.trackFrame = ''
+      this.beforeTrackImg = ''
+    },
+    // 关闭摄像头
+    stopCamara () {
+      this.videoStream.getTracks()[0].stop()
+      this.videoStream = null
+      this.videoContain.srcObject = null
+      this.onCamara = false
+    },
+    // 使用照片
+    useCapture () {
+      this.beforeTrackImgUrl = this.trackFrame
+      this.trackFrame = ''
+      this.imgCapDialogVisible = false
+      this.isUpload = true
+      this.videoStream.getTracks()[0].stop()
+      this.videoStream = null
+      this.videoContain.srcObject = null
+      this.onCamara = false
+    },
+    // 获取设备列表
+    getDeviceList () {
+      navigator.mediaDevices.enumerateDevices().then(devices => {
+        devices.forEach(device => {
+          if (device.kind === 'videoinput') {
+            this.deviceList.push(device)
+          }
+        })
+        this.deviceId = this.deviceList[0].deviceId ? this.deviceList[0].deviceId : null
+      })
     },
     // 轨迹追踪
     // pursuitTracking () {
@@ -418,11 +560,85 @@ export default {
   background: url("../../assets/track_image_bg.jpg") no-repeat center;
 }
 
-.dialog-img {
-  max-width: 80vw;
-  max-height: 80vh;
-  object-fit: contain;
+.img-cap {
+  border: none;
+  background-color: rgba(0, 0, 0, 0);
+  font-size: 2.3vh;
+  color: rgb(90, 141, 251);
+}
+
+.img-cap:hover {
+  font-weight: bold;
+  color: rgb(73, 108, 214);
+}
+
+.img-cap-dialog {
+  background-color: rgba(0, 0, 0, .6);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  z-index: 1000;
+  float: top;
+}
+
+.img-cap-dialog-content {
+  margin: 5vh auto;
+  width: 80%;
+  height: 74vh;
+  background-color: rgba(255, 255, 255, .8);
   border-radius: 25px;
+  padding: 8vh 3%;
+}
+
+.img-cap-dialog-content-title {
+  font-size: 3.5vh;
+}
+
+.before-open-camara .info-form {
+  margin: 10vh 15vw;
+}
+
+.before-open-camara .info-form >>> .el-form-item {
+  margin: 5vh 5vw;
+}
+
+.before-open-camara .info-form >>> .el-form-item__label {
+  font-size: 2.3vh;
+}
+
+.before-open-camara .info-form >>> .el-form-item__content {
+  text-align: left;
+}
+
+.before-open-camara .info-form >>> .el-form-item {
+  margin-bottom: 0;
+}
+
+.before-open-camara .setting-btn {
+  width: 25%;
+  margin: 3vh 2vw;
+  font-size: 2vh;
+  line-height: 3vh;
+}
+
+.media-container {
+  margin: 5vh auto;
+  width: 75vw;
+  height: 60vh;
+  border-radius: 25px;
+  background-color: rgba(62, 61, 61, 0.2);
+}
+
+.cap-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 25px;
+}
+
+.after-open-camara .setting-btn {
+  width: 20%;
 }
 
 .actions {

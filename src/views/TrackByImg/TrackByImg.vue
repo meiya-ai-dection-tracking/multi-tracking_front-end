@@ -48,11 +48,11 @@
             </div>
             <div v-if="!isUpload" class="step1_before_upload">
               <div class="loading-icon">
-                <i class="el-icon-loading"></i>
+                <i class="el-icon-camera-solid" @click="imgCapDialogVisible = true"></i>
               </div>
               <p>未检测到图像上传，请先在 <b>左侧拖拽框</b> 中上传图像</p>
               <p>或点击
-                <button class="img-cap" @click="imgCapDialogVisible = true">此处</button>
+                <i class="el-icon-camera-solid"></i>
                 进行拍照上传
               </p>
             </div>

@@ -9,7 +9,6 @@ export default {
   name: 'App',
   data () {
     return {
-      height: 0
     }
   },
   computed: {
@@ -21,8 +20,4 @@ export default {
 </script>
 
 <style>
-* {
-  margin: 0;
-  padding: 0;
-}
 </style>

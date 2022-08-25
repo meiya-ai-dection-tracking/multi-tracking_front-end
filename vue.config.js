@@ -1,4 +1,5 @@
 module.exports = {
+  transpileDependencies: ['/@yabby-business/'],
   devServer: {
     // host: 'localhost',
     port: 8080,

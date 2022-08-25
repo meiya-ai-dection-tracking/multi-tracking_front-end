@@ -354,14 +354,6 @@ export default {
       trackByImg(formData).then(res => {
         this.trackingPercentage = 100
         console.log(res)
-        // this.list = res.data.list
-        // for (let person in this.list) {
-        //   console.log("key: " + person)
-        //   this.list[person] = new Blob([this.list[person]], {type: 'image/jpg'})
-        //   this.l = window.URL.createObjectURL(this.list[person])
-        //   console.log(this.list[person])
-        // }
-        // console.log(this.l)
         this.afterTrackImgUrl = window.URL.createObjectURL(res.data)
         this.afterTrackImg = new File([res.data], 'result', {type: res.data.type})
         this.trackFileSize = this.convertFileSize(this.afterTrackImg.size)
